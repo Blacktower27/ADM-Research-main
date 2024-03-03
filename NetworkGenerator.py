@@ -112,13 +112,15 @@ class Node:
             self.ScheduleDT=S.flight2scheduleDT[name]#计划出发时间
             self.ScheduleAT=S.flight2scheduleAT[name]#计划到达时间
             self.ScheCrsTime=S.flight2dict[name]["Cruise_time"]
-            self.CrsTimeComp=int(self.ScheCrsTime*S.config["CRSTIMECOMPPCT"])#机组人员完成时限 感觉像是一些准备的时间
+            self.CrsTimeComp=int(self.ScheCrsTime*S.config["CRSTIMECOMPPCT"])#真的飞的时间
             self.EDT=self.SDT#允许起飞的最早时间
             self.EAT=self.SDT+self.SFT-self.CrsTimeComp#允许到达的最早时间
             self.CT=min(S.type2mincontime.values())#连接时间
+            # 计算巡航阶段的距离、计划巡航速度和最大巡航速度
             self.CrsStageDistance=S.flight2dict[name]["Distance"]*S.config["CRUISESTAGEDISTPCT"]
             self.ScheCrsSpeed=self.CrsStageDistance/S.flight2dict[name]["Cruise_time"]
             self.MaxCrsSpeed=self.CrsStageDistance/(S.flight2dict[name]["Cruise_time"]-self.CrsTimeComp)
+            # 计算计划巡航阶段的燃油消耗
             self.ScheFuelConsump=self.CrsStageDistance*(sum([S.config["FUELCONSUMPPARA"][i]*[(self.ScheCrsSpeed)**2,self.ScheCrsSpeed,(self.ScheCrsSpeed)**(-2),(self.ScheCrsSpeed)**(-3)][i] for i in range(4)]))
             self.Demand=0
             self.fathers=[]  # VNS
