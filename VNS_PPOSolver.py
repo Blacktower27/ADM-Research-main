@@ -261,7 +261,7 @@ if __name__ == '__main__':
               "SEED": 1,
               "EPISODE": 5000,
               "TRAJLEN": 5,
-              "FC1DIMS": 256,
+              "FC1DIMS": 256,#隐藏层大小
               "FC2DIMS": 256,
               "ALPHA": 0.00001, 
               "GAMMA": 0.9,
