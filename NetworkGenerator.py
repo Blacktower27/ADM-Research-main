@@ -24,21 +24,23 @@ class Scenario:
         self.dfschedule=pd.read_csv("Datasets/"+direname+"/Schedule.csv",na_filter=None)
         self.dfpassenger=pd.read_csv("Datasets/"+direname+"/Passenger.csv",na_filter=None)
         # 创建航班计划到达时间和计划出发时间的dict
-        self.flight2scheduleAT={row.Flight:row.SAT for row in self.dfschedule.itertuples()}
-        self.flight2scheduleDT={row.Flight:row.SDT for row in self.dfschedule.itertuples()}
+        self.flight2scheduleAT={row.Flight:row.SAT for row in self.dfschedule.itertuples()}#到达
+        self.flight2scheduleDT={row.Flight:row.SDT for row in self.dfschedule.itertuples()}#起飞
         #设置机场set
-        self.airports=set(self.dfschedule["From"])|set(self.dfschedule["To"])
+        self.airports=set(self.dfschedule["From"])|set(self.dfschedule["To"])#起点和目的地
         
         #load from Scenario 加载延误信息
-        self.dfdrpschedule=pd.read_csv("Scenarios/"+scname+"/DrpSchedule.csv",na_filter=None)
-        self.disruptedFlights=self.dfdrpschedule[self.dfdrpschedule["is_disrupted"]==1]["Flight"].tolist()
+        self.dfdrpschedule=pd.read_csv("Scenarios/"+scname+"/DrpSchedule.csv",na_filter=None)#延误表中所有的航班
+        self.disruptedFlights=self.dfdrpschedule[self.dfdrpschedule["is_disrupted"]==1]["Flight"].tolist()#出现延误的航班
         with open("Scenarios/"+scname+"/DelayedReadyTime.json", "r") as outfile:
             self.entity2delayTime=json.load(outfile)
                 
-        #Create FNodes
+        #Create FNodes航班信息的字典
         self.flight2dict={dic['Flight']:dic for dic in self.dfdrpschedule.to_dict(orient='records')}
         # 设置各类型最小连接时间
+        #飞机（ACF）、机组（CRW）、乘客（PAX）、行程（ITIN）
         self.type2mincontime={"ACF":self.config["ACMINCONTIME"],"CRW":self.config["CREWMINCONTIME"],"PAX":self.config["PAXMINCONTIME"],"ITIN":self.config["PAXMINCONTIME"]}
+        #飞行节点list
         self.FNodes=[Node(self,ntype="FNode",name=flight) for flight in self.dfdrpschedule["Flight"].tolist()]
         # 创建航班名称到FNode对象的映射和FNode对象到航班名称的映射    
         self.name2FNode={node.name:node for node in self.FNodes}
@@ -96,23 +98,24 @@ class Scenario:
         
 class Node:
     def __init__(self,S,ntype="FNode",name=None,info=None):
+        #这里的S是Scenario
         self.ntype=ntype
         self.name=name
         if ntype=="FNode":
             self.Ori=S.flight2dict[name]["From"]
             self.Des=S.flight2dict[name]["To"]
-            self.SDT=S.flight2dict[name]["SDT"]
-            self.SAT=S.flight2dict[name]["SAT"]
-            self.SFT=S.flight2dict[name]["Flight_time"]
-            self.LDT=self.SDT+S.config["MAXHOLDTIME"]
-            self.LAT=self.SAT+S.config["MAXHOLDTIME"]
-            self.ScheduleDT=S.flight2scheduleDT[name]
-            self.ScheduleAT=S.flight2scheduleAT[name]
+            self.SDT=S.flight2dict[name]["SDT"]#延误后的出发时间
+            self.SAT=S.flight2dict[name]["SAT"]#延误后的到达时间
+            self.SFT=S.flight2dict[name]["Flight_time"]#飞行时长
+            self.LDT=self.SDT+S.config["MAXHOLDTIME"]#最晚出发时间
+            self.LAT=self.SAT+S.config["MAXHOLDTIME"]#最晚到达时间
+            self.ScheduleDT=S.flight2scheduleDT[name]#计划出发时间
+            self.ScheduleAT=S.flight2scheduleAT[name]#计划到达时间
             self.ScheCrsTime=S.flight2dict[name]["Cruise_time"]
-            self.CrsTimeComp=int(self.ScheCrsTime*S.config["CRSTIMECOMPPCT"])
-            self.EDT=self.SDT
-            self.EAT=self.SDT+self.SFT-self.CrsTimeComp
-            self.CT=min(S.type2mincontime.values())
+            self.CrsTimeComp=int(self.ScheCrsTime*S.config["CRSTIMECOMPPCT"])#机组人员完成时限 感觉像是一些准备的时间
+            self.EDT=self.SDT#允许起飞的最早时间
+            self.EAT=self.SDT+self.SFT-self.CrsTimeComp#允许到达的最早时间
+            self.CT=min(S.type2mincontime.values())#连接时间
             self.CrsStageDistance=S.flight2dict[name]["Distance"]*S.config["CRUISESTAGEDISTPCT"]
             self.ScheCrsSpeed=self.CrsStageDistance/S.flight2dict[name]["Cruise_time"]
             self.MaxCrsSpeed=self.CrsStageDistance/(S.flight2dict[name]["Cruise_time"]-self.CrsTimeComp)

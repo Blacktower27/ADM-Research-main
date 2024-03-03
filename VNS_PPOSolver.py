@@ -207,8 +207,8 @@ class Agent:
         self.memory.clear_memory()             
     
 def trainPPO(config):
-    T.manual_seed(config["SEED"])
-    S = Scenario(config["DATASET"], config["SCENARIO"], "PAX")
+    T.manual_seed(config["SEED"])#设置随机种子
+    S = Scenario(config["DATASET"], config["SCENARIO"], "PAX")#这个乘客类型是什么？
     env = ADMEnvironment(S, config["SEED"], config["NSTRING"])
     dire = "Results/"+config["SCENARIO"]+"/Policy"
     agent = Agent(n_actions=env.n_actions, input_dims=env.stateShape, fc1_dims=config["FC1DIMS"], fc2_dims=config["FC2DIMS"], \
@@ -255,8 +255,8 @@ if __name__ == '__main__':
     
     i=5
     j='p'
-    config = {"DATASET": "ACF%d"%i,
-              "SCENARIO": "ACF%d-SCm"%i,
+    config = {"DATASET": "ACF%d"%i,#
+              "SCENARIO": "ACF%d-SCm"%i,#飞机航班计划表
             #   "SCENARIO": "ACF%d-SC%d" % (i, j),
               "SEED": 1,
               "EPISODE": 5000,
