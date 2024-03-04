@@ -13,10 +13,10 @@ import heapq
 class ADMEnvironment(VNSSolver):
     def __init__(self, S, seed, npar):
         super().__init__(S, seed)
-        self.flt2idx = {flt:idx+1 for idx, flt in enumerate(self.flts)}
-        self.ap2idx = {ap:idx+1 for idx, ap in enumerate(self.S.airports)}
-        self.skdStrState = (self.skdPs, self.skdQs)
-        self.stateShape = self.string2tensor(self.skdStrState).shape
+        self.flt2idx = {flt:idx+1 for idx, flt in enumerate(self.flts)}#航班index
+        self.ap2idx = {ap:idx+1 for idx, ap in enumerate(self.S.airports)}#机场index
+        self.skdStrState = (self.skdPs, self.skdQs)#飞机和机组人员的 起点机场 中间经过的fnode 终点机场
+        self.stateShape = self.string2tensor(self.skdStrState).shape#状态的shape
         Pinds = list(range(len(self.skdPs)))
         Qinds = list(range(len(self.skdQs)))
         
@@ -25,7 +25,7 @@ class ADMEnvironment(VNSSolver):
             Qdist = self.getStringDistribution(self.skdQs)
             Pinds = heapq.nlargest(npar[0], range(len(Pdist)), Pdist.take)
             Qinds = heapq.nlargest(npar[1], range(len(Qdist)), Qdist.take)
-            
+        # 生成元素内的两两组合
         pindpairs = itertools.combinations(Pinds, 2)
         qindpairs = itertools.combinations(Qinds, 2)
         combs = itertools.product(range(4), range(4), pindpairs, qindpairs)
@@ -33,27 +33,34 @@ class ADMEnvironment(VNSSolver):
         self.n_actions = len(self.idx2action)
     
     def reset(self):
+        # 保存上一个状态和上一个状态的评估结果
         self.lastStrState = self.skdStrState
         self.lastObj = self.evaluate(*self.skdStrState)[0]
+        # 返回重置后的环境状态的张量表示
         return self.string2tensor(self.skdStrState)
 
     def string2tensor(self, strState):
-        flightidx = [[self.flt2idx[flt] for flt in P[1:-1]] for P in strState[0]+strState[1]]
-        padarray = np.array([L+[0]*(10-len(L)) for L in flightidx]).flatten()
+        # 首先，将字符串表示的状态解析为航班索引的列表
+        flightidx = [[self.flt2idx[flt] for flt in P[1:-1]] for P in strState[0] + strState[1]]
+        # 然后，对列表中的每个子列表进行填充，使其长度为 10，并将其展平为一维数组
+        padarray = np.array([L + [0] * (10 - len(L)) for L in flightidx]).flatten()
+        # 返回填充后的数组作为张量表示的状态
         return padarray
         
     def step(self, action_idx):
+        #k1:对航班对操作, k2:对机组人员的操作, pindpair:航班pair, qindpair:机组人员pair
         k1, k2, pindpair, qindpair = self.idx2action[action_idx]
-        curPs, curQs = self.lastStrState
-        curObj = self.lastObj
+        curPs, curQs = self.lastStrState#当前的航班状态和机组人员状态
+        curObj = self.lastObj# 获取当前状态的评估值
         
         for (nP1, nP2) in eval("self."+self.k2func[k1])(curPs[pindpair[0]], curPs[pindpair[1]]):
-            nPs = curPs.copy()
-            nPs[pindpair[0]], nPs[pindpair[1]] = nP1, nP2
+            nPs = curPs.copy()# 复制当前航班状态
+            nPs[pindpair[0]], nPs[pindpair[1]] = nP1, nP2# 执行航班对的操作，更新航班状态
             for (nQ1,nQ2) in eval("self."+self.k2func[k2])(curQs[qindpair[0]], curQs[qindpair[1]]):
-                nQs = curQs.copy()
-                nQs[qindpair[0]], nQs[qindpair[1]] = nQ1, nQ2
-                nObj = self.evaluate(nPs, nQs)[0]
+                nQs = curQs.copy()# 复制当前机组人员状态
+                nQs[qindpair[0]], nQs[qindpair[1]] = nQ1, nQ2# 执行机组人员的操作，更新机组人员状态
+                nObj = self.evaluate(nPs, nQs)[0]# 计算更新后的状态的评估值
+                # 如果更新后的状态的评估值比当前状态的评估值更优，则更新当前状态和评估值
                 if nObj < curObj:
                     curPs, curQs, curObj = nPs, nQs, nObj
         
@@ -269,7 +276,7 @@ if __name__ == '__main__':
               "POLICYCLIP": 0.8,
               "BATCHSIZE": 5,
               "NEPOCH": 3,
-              "NSTRING": None,
+              "NSTRING": None,#这是个什么玩意？
               "SAVERESULT": True,
               "SAVEPOLICY": False,
               "EXISTPOLICY": None

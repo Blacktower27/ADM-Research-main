@@ -73,56 +73,68 @@ class VNSSolver:
     def checkConnections(self,pairs): #pairs=[(P1,P2)] or [(Q1,Q2)]
         flag=True
         for pair in pairs:
-            if pair[0] not in self.flts and pair[1] not in self.flts:
+            if pair[0] not in self.flts and pair[1] not in self.flts:#两个都是机场无法连接
                 flag=False
-            elif pair[0] not in self.flts and pair[0]!=self.node[pair[1]].Ori:
+            elif pair[0] not in self.flts and pair[0]!=self.node[pair[1]].Ori:#0是机场且不是1航班的出发机场 无法连接
                 flag=False
-            elif pair[1] not in self.flts and pair[1]!=self.node[pair[0]].Des:
+            elif pair[1] not in self.flts and pair[1]!=self.node[pair[0]].Des:#1是机场且不是0航班的目的机场 无法连接
                 flag=False
+            #0，1都是航班时，0的目的机场和1的出发机场不同,或者1的最晚出发时间小于(0的最早到达时间+连接时间) 无法连接
             elif pair[0] in self.flts and pair[1] in self.flts and (self.node[pair[0]].Des!=self.node[pair[1]].Ori or self.node[pair[1]].LDT<self.node[pair[0]].CT+self.node[pair[0]].EAT):
                 flag=False
         return flag
         
-    def pass_(self,X1,X2):
+    def pass_(self,X1,X2):#啥也不干
         return [(X1,X2)]
     
-    def swap(self,X1,X2):
+    def swap(self,X1,X2):#交换
         pairs=[]
         for u in range(1,len(X1)-1):
             for v in range(1,len(X2)-1):
                 if self.checkConnections([(X1[u-1],X2[v]),(X2[v-1],X1[u]),(X2[v],X1[u+1]),(X1[u],X2[v+1])]):
-                    pairs.append((X1[:u]+[X2[v]]+X1[u+1:],X2[:v]+[X1[u]]+X2[v+1:]))
+                    pairs.append((X1[:u]+[X2[v]]+X1[u+1:],X2[:v]+[X1[u]]+X2[v+1:]))#交换中间的单个节点
         return pairs
     
-    def cut(self,X1,X2):
-        pairs=[]
-        for u1 in range(1,len(X1)-1):
-            for u2 in range(u1,len(X1)-1):
-                for v1 in range(1,len(X2)-1):
-                    for v2 in range(v1,len(X2)-1):
-                        if self.checkConnections([(X1[u1-1],X2[v1]),(X2[v1-1],X1[u1]),(X2[v2],X1[u2+1]),(X1[u2],X2[v2+1])]):
-                            pairs.append((X1[:u1]+X2[v1:v2+1]+X1[u2+1:],X2[:v1]+X1[u1:u2+1]+X2[v2+1:]))
+    def cut(self,X1,X2):#交换中间的一坨
+        pairs = []  # 初始化结果列表
+        # 遍历 X1 中所有可能的切割位置
+        for u1 in range(1, len(X1) - 1):
+            for u2 in range(u1, len(X1) - 1):
+                # 遍历 X2 中所有可能的切割位置
+                for v1 in range(1, len(X2) - 1):
+                    for v2 in range(v1, len(X2) - 1):
+                        # 检查切割后的序列是否保持连通性
+                        if self.checkConnections([(X1[u1 - 1], X2[v1]), (X2[v1 - 1], X1[u1]), (X2[v2], X1[u2 + 1]),
+                                                  (X1[u2], X2[v2 + 1])]):
+                            # 如果保持连通性，则将切割后的结果添加到 pairs 中
+                            pairs.append((X1[:u1] + X2[v1:v2 + 1] + X1[u2 + 1:], X2[:v1] + X1[u1:u2 + 1] + X2[v2 + 1:]))
         return pairs
     
-    def insert(self,X1,X2):
-        pairs=[]
-        for u in range(1,len(X1)-1):
-            for v1 in range(1,len(X2)-1):
-                for v2 in range(v1+1,len(X2)-1):
-                    if self.checkConnections([(X1[u-1],X2[v1]),(X2[v2],X1[u]),(X2[v1-1],X2[v2+1])]):
-                        pairs.append((X1[:u]+X2[v1:v2+1]+X1[u:],X2[:v1]+X2[v2+1:]))
+    def insert(self,X1,X2):#把X2中的一段 插入X1
+        pairs = []  # 初始化结果列表
+        # 遍历 X1 中所有可能的插入位置
+        for u in range(1, len(X1) - 1):
+            # 遍历 X2 中所有可能用于插入的中间段
+            for v1 in range(1, len(X2) - 1):
+                for v2 in range(v1 + 1, len(X2) - 1):
+                    # 检查插入后的序列是否保持连通性
+                    if self.checkConnections([(X1[u - 1], X2[v1]), (X2[v2], X1[u]), (X2[v1 - 1], X2[v2 + 1])]):
+                        # 如果保持连通性，则将插入后的结果添加到 pairs 中
+                        pairs.append((X1[:u] + X2[v1:v2 + 1] + X1[u:], X2[:v1] + X2[v2 + 1:]))
         return pairs
 
 
     def evaluate(self,Ps,Qs):
-        flt2tail={flt:self.tails[i] for i,P in enumerate(Ps) for flt in P[1:-1]}
+        flt2tail={flt:self.tails[i] for i,P in enumerate(Ps) for flt in P[1:-1]}#航班对飞机的映射
         # find the father flight for each flight based on Qs and multiple hop schedule itin
         flt2father={}
+        #根据机组人与查看父航线
         for Q in Qs:
             flts=Q[1:-1]
             flt2father[flts[0]]=None
             for i in range(1,len(flts)):
                 flt2father[flts[i]]=flts[i-1]
+        #根据行程查看父航线
         for fltleg in self.S.fltlegs2itin.keys():
             flts=fltleg.split('-')
             if len(flts)>1:
