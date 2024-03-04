@@ -17,34 +17,60 @@ class VNSSolver:
         self.S=S
         random.seed(seed)
         np.random.seed(seed)
-        self.node=S.name2FNode
-        self.flts=list(S.flight2dict.keys())
-        self.tails=list(S.tail2flights.keys())
+        self.node=S.name2FNode#飞行节点
+        self.flts=list(S.flight2dict.keys())#航班
+        self.tails=list(S.tail2flights.keys())#飞机
         self.tail2cap=S.tail2capacity
-        self.tail2srcdest={tail:[self.node[flts[0]].Ori,self.node[flts[-1]].Des] for tail,flts in S.tail2flights.items()}
+        self.tail2srcdest={tail:[self.node[flts[0]].Ori,self.node[flts[-1]].Des] for tail,flts in S.tail2flights.items()}#飞机最初的起点机场和最后的到达机场
         self.crews=list(S.crew2flights.keys())
-        self.crew2srcdest={crew:[self.node[flts[0]].Ori,self.node[flts[-1]].Des] for crew,flts in S.crew2flights.items()}        
-        self.skdPs=[[self.tail2srcdest[tail][0]]+flts+[self.tail2srcdest[tail][1]] for tail,flts in S.tail2flights.items()]   # e.g. P=[LAX,F00,F01,F02,ORD]; Ps=[P1,P2,P3,..]
-        self.skdQs=[[self.crew2srcdest[crew][0]]+flts+[self.crew2srcdest[crew][1]] for crew,flts in S.crew2flights.items()]
-        self.k2func={0:"pass_",1:"swap",2:"cut",3:"insert"}
+        self.crew2srcdest={crew:[self.node[flts[0]].Ori,self.node[flts[-1]].Des] for crew,flts in S.crew2flights.items()}#机组成员最初的起点机场和最后的到达机场
+        self.skdPs=[[self.tail2srcdest[tail][0]]+flts+[self.tail2srcdest[tail][1]] for tail,flts in S.tail2flights.items()]#每架飞机的起点机场 中间经过的fnode 终点机场   # e.g. P=[LAX,F00,F01,F02,ORD]; Ps=[P1,P2,P3,..]
+        self.skdQs=[[self.crew2srcdest[crew][0]]+flts+[self.crew2srcdest[crew][1]] for crew,flts in S.crew2flights.items()]#每个机组成员的起点机场 中间经过的fnode 终点机场
+        self.k2func={0:"pass_",1:"swap",2:"cut",3:"insert"}#临域动作的编号 delete不知道去哪里了
         self.baseline=baseline
-        self.enumFlag=enumFlag
-        
-        # three types of baseline VNS
-        undirectGraph=self.S.connectableGraph.to_undirected()
-        if baseline=="uniform": # uniform probability to be operated
-            self.node2weight={self.S.FNode2name[node]:1 for node in self.S.FNodes}
-        elif baseline=="degree": # larger degree indicates higher probability to be operated
-            self.node2weight={self.S.FNode2name[node]:deg for node,deg in undirectGraph.degree()}
-        elif baseline=="distance":  # smaller distance indicates higher probability to be operated
-            self.node2weight={}
+        self.enumFlag=enumFlag#是否枚举？
+        # 基于三种类型的基线VNS
+        # 将有向图转换为无向图
+        undirectGraph = self.S.connectableGraph.to_undirected()
+
+        # uniform：均匀概率操作
+        if baseline == "uniform":
+            # 为每个节点设置相同的权重
+            self.node2weight = {self.S.FNode2name[node]: 1 for node in self.S.FNodes}
+        # degree：度越大表示被操作的概率越高
+        elif baseline == "degree":
+            # 为每个节点设置与其度数相同的权重
+            self.node2weight = {self.S.FNode2name[node]: deg for node, deg in undirectGraph.degree()}
+        # distance：距离越小表示被操作的概率越高
+        elif baseline == "distance":
+            # 初始化节点权重字典为空
+            self.node2weight = {}
+            # 对于每个需求点节点
             for drpNode in self.S.drpFNodes:
-                node2distance=nx.single_source_dijkstra_path_length(undirectGraph,drpNode,cutoff=None,weight='weight')
-                for node,dis in node2distance.items():
+                # 计算从该节点到其他节点的最短距离
+                node2distance = nx.single_source_dijkstra_path_length(undirectGraph, drpNode, cutoff=None, weight='weight')
+                # 更新节点权重字典，距离越小权重越大
+                for node, dis in node2distance.items():
                     if self.S.FNode2name[node] not in self.node2weight:
-                        self.node2weight[self.S.FNode2name[node]]=-1*dis
-                    elif self.node2weight[self.S.FNode2name[node]]<-1*dis:
-                        self.node2weight[self.S.FNode2name[node]]=-1*dis
+                        self.node2weight[self.S.FNode2name[node]] = -1 * dis
+                    elif self.node2weight[self.S.FNode2name[node]] < -1 * dis:
+                        self.node2weight[self.S.FNode2name[node]] = -1 * dis
+        print('a')
+        # # three types of baseline VNS
+        # undirectGraph=self.S.connectableGraph.to_undirected()
+        # if baseline=="uniform": # uniform probability to be operated
+        #     self.node2weight={self.S.FNode2name[node]:1 for node in self.S.FNodes}
+        # elif baseline=="degree": # larger degree indicates higher probability to be operated
+        #     self.node2weight={self.S.FNode2name[node]:deg for node,deg in undirectGraph.degree()}
+        # elif baseline=="distance":  # smaller distance indicates higher probability to be operated
+        #     self.node2weight={}
+        #     for drpNode in self.S.drpFNodes:
+        #         node2distance=nx.single_source_dijkstra_path_length(undirectGraph,drpNode,cutoff=None,weight='weight')
+        #         for node,dis in node2distance.items():
+        #             if self.S.FNode2name[node] not in self.node2weight:
+        #                 self.node2weight[self.S.FNode2name[node]]=-1*dis
+        #             elif self.node2weight[self.S.FNode2name[node]]<-1*dis:
+        #                 self.node2weight[self.S.FNode2name[node]]=-1*dis
                         
     def checkConnections(self,pairs): #pairs=[(P1,P2)] or [(Q1,Q2)]
         flag=True

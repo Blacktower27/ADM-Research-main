@@ -109,16 +109,19 @@ class Scenario:
         # self.connectableGraph.add_edges_from(connectableEdges)
         # self.connectableGraphByName.add_edges_from(connectableEdgesByNames)
 
-    def plotEntireFlightNetwork(self,ax):
+    def plotEntireFlightNetwork(self,ax):#没有被调用
         colormap=['orange' if node.name in self.disruptedFlights else 'lightblue' for node in self.connectableGraph.nodes]
         nx.draw_circular(self.connectableGraph,labels=self.FNode2name,node_color=colormap,ax=ax)
         ax.set_title("Entire Flight Network")\
 
     def getTimeString(self,seconds):
+        # 将总秒数转换为天、小时、分钟和秒
         days,remainder=divmod(seconds,24*3600)
         hours,remainder=divmod(remainder,3600)
         minutes,seconds=divmod(remainder,60)
+        # 格式化时间字符串，显示小时和分钟
         s='{:02}:{:02}'.format(int(hours),int(minutes))
+        # 如果有多于一天的时间，添加天数信息到时间字符串中
         if days>0:
             s+=" (+%d)"%days
         return s
