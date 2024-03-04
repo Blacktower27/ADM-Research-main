@@ -28,13 +28,13 @@ class Scenario:
         self.flight2scheduleDT={row.Flight:row.SDT for row in self.dfschedule.itertuples()}#起飞
         #设置机场set
         self.airports=set(self.dfschedule["From"])|set(self.dfschedule["To"])#起点和目的地
-        
+
         #load from Scenario 加载延误信息
         self.dfdrpschedule=pd.read_csv("Scenarios/"+scname+"/DrpSchedule.csv",na_filter=None)#延误表中所有的航班
         self.disruptedFlights=self.dfdrpschedule[self.dfdrpschedule["is_disrupted"]==1]["Flight"].tolist()#出现延误的航班
         with open("Scenarios/"+scname+"/DelayedReadyTime.json", "r") as outfile:
             self.entity2delayTime=json.load(outfile)
-                
+
         #Create FNodes航班信息的字典
         self.flight2dict={dic['Flight']:dic for dic in self.dfdrpschedule.to_dict(orient='records')}
         # 设置各类型最小连接时间
@@ -57,36 +57,63 @@ class Scenario:
             self.itin2flights[row.Itinerary]=flights#行程到航班到映射
             self.itin2pax[row.Itinerary]=row.Pax#行程到乘客数量到的映射
             for flight in flights:
-                self.flight2itinNum[flight].append((row.Itinerary,row.Pax))#航班到行程的映射
+                self.flight2itinNum[flight].append((row.Itinerary,row.Pax))#航班到行程和乘客数量的映射
                 self.flt2pax[flight]+=row.Pax#航班到乘客数量到映射
                 self.flt2skditins[flight].append(row.Itinerary)#航班到行程到映射
-         # 如果乘客类型是PAX，则创建乘客名称到航班列表的映射            
+         # 如果乘客类型是PAX，则创建乘客名称到航班列表的映射
         if paxtype=="PAX":
-            self.paxname2flights={}
+            self.paxname2flights={}#乘客到航班的映射
             for row in self.dfpassenger.itertuples():
                 flights=row.Flights.split('-')
                 self.paxname2flights[row.Pax]=flights
-        
-        # 创建航班组合到行程的映射、航班到计划时间的映射、行程到出发机场的映射和行程到到达机场的映射
-        self.fltlegs2itin={row.Flight_legs:row.Itinerary for row in self.dfitinerary.itertuples()}
-        self.itin2skdtime={row.Itinerary:(row.SDT,row.SAT) for row in self.dfitinerary.itertuples()}
-        self.itin2origin={itin:self.name2FNode[self.itin2flights[itin][0]].Ori for itin in self.itin2flights.keys()}
-        self.itin2destination={itin:self.name2FNode[self.itin2flights[itin][-1]].Des for itin in self.itin2flights.keys()}
-        self.tail2capacity={tail:df_cur["Capacity"].tolist()[0] for tail,df_cur in self.dfdrpschedule.groupby("Tail")}
-        self.type2flightdict={"ACF":self.tail2flights,"CRW":self.crew2flights,paxtype:self.itin2flights if paxtype=="ITIN" else self.paxname2flights}
 
-        #Generate connectable digraph for flight nodes
-        self.connectableGraph,self.connectableGraphByName=nx.DiGraph(),nx.DiGraph()
-        connectableEdges=[(node1,node2) for node1 in self.FNodes for node2 in self.FNodes if node1.Des==node2.Ori and node2.LDT>=node1.EAT+node1.CT]
-        connectableEdgesByNames=[(node1.name,node2.name) for (node1,node2) in connectableEdges]
+        # 创建航班组合到行程的映射、航班到计划时间的映射、行程到出发机场的映射和行程到到达机场的映射
+        self.fltlegs2itin={row.Flight_legs:row.Itinerary for row in self.dfitinerary.itertuples()}#航班组合到行程到映射
+        self.itin2skdtime={row.Itinerary:(row.SDT,row.SAT) for row in self.dfitinerary.itertuples()}#行程到计划时间的映射
+        self.itin2origin={itin:self.name2FNode[self.itin2flights[itin][0]].Ori for itin in self.itin2flights.keys()}#行程到出发机场的映射
+        self.itin2destination={itin:self.name2FNode[self.itin2flights[itin][-1]].Des for itin in self.itin2flights.keys()}#行程到到达机场的映射
+        self.tail2capacity={tail:df_cur["Capacity"].tolist()[0] for tail,df_cur in self.dfdrpschedule.groupby("Tail")}#飞机到最大载客量的映射
+        self.type2flightdict={"ACF":self.tail2flights,"CRW":self.crew2flights,paxtype:self.itin2flights if paxtype=="ITIN" else self.paxname2flights}#机场
+
+        # 为航班节点生成可连接的有向图
+        # self.connectableGraph: 存储航班节点之间连接关系的有向图
+        # self.connectableGraphByName: 存储航班节点名称之间连接关系的有向图
+        self.connectableGraph, self.connectableGraphByName = nx.DiGraph(), nx.DiGraph()
+        # 生成可连接的边列表，用于构建航班节点之间的连接关系
+        # 这些边将连接起始地和目的地相同、且后一个航班的最晚出发时间大于等于前一个航班的允许到达时间加上连接时间的航班节点
+        connectableEdges = [(node1, node2) for node1 in self.FNodes for node2 in self.FNodes if
+                            node1.Des == node2.Ori and node2.LDT >= node1.EAT + node1.CT]#fnode的有向图
+        # 生成可连接的边列表，其中元素是航班节点的名称
+        connectableEdgesByNames = [(node1.name, node2.name) for (node1, node2) in connectableEdges]#fnode的名字的有向图
+        # 将可连接的边添加到 self.connectableGraph 和 self.connectableGraphByName 中
         self.connectableGraph.add_edges_from(connectableEdges)
         self.connectableGraphByName.add_edges_from(connectableEdgesByNames)
-                    
+        # # 查看 self.connectableGraph 中的所有节点和边
+        # nodes = list(self.connectableGraph.nodes())
+        # edges = list(self.connectableGraph.edges())
+        #
+        # # 查看 self.connectableGraphByName 中的所有节点和边
+        # nodes_by_name = list(self.connectableGraphByName.nodes())
+        # edges_by_name = list(self.connectableGraphByName.edges())
+        #
+        # # 输出结果
+        # print("Nodes in connectableGraph:", nodes)
+        # print("Edges in connectableGraph:", edges)
+        # print("Nodes in connectableGraphByName:", nodes_by_name)
+        # print("Edges in connectableGraphByName:", edges_by_name)
+
+        # #Generate connectable digraph for flight nodes
+        # self.connectableGraph,self.connectableGraphByName=nx.DiGraph(),nx.DiGraph()
+        # connectableEdges=[(node1,node2) for node1 in self.FNodes for node2 in self.FNodes if node1.Des==node2.Ori and node2.LDT>=node1.EAT+node1.CT]
+        # connectableEdgesByNames=[(node1.name,node2.name) for (node1,node2) in connectableEdges]
+        # self.connectableGraph.add_edges_from(connectableEdges)
+        # self.connectableGraphByName.add_edges_from(connectableEdgesByNames)
+
     def plotEntireFlightNetwork(self,ax):
         colormap=['orange' if node.name in self.disruptedFlights else 'lightblue' for node in self.connectableGraph.nodes]
         nx.draw_circular(self.connectableGraph,labels=self.FNode2name,node_color=colormap,ax=ax)
         ax.set_title("Entire Flight Network")\
-        
+
     def getTimeString(self,seconds):
         days,remainder=divmod(seconds,24*3600)
         hours,remainder=divmod(remainder,3600)
