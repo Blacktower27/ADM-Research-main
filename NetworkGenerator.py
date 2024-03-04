@@ -95,7 +95,7 @@ class Scenario:
         # # 查看 self.connectableGraphByName 中的所有节点和边
         # nodes_by_name = list(self.connectableGraphByName.nodes())
         # edges_by_name = list(self.connectableGraphByName.edges())
-        #
+        # # #
         # # 输出结果
         # print("Nodes in connectableGraph:", nodes)
         # print("Edges in connectableGraph:", edges)

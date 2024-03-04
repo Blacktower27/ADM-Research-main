@@ -36,8 +36,8 @@ class VNSSolver:
         # uniform：均匀概率操作
         if baseline == "uniform":
             # 为每个节点设置相同的权重
-            self.node2weight = {self.S.FNode2name[node]: 1 for node in self.S.FNodes}
-        # degree：度越大表示被操作的概率越高
+            self.node2weight = {self.S.FNode2name[node]: 1 for node in self.S.FNodes}#全部的概率都是1
+        # degree：连接其他节点的数量越多权重越高（包括其他节点指向它 以及它指向其他节点）
         elif baseline == "degree":
             # 为每个节点设置与其度数相同的权重
             self.node2weight = {self.S.FNode2name[node]: deg for node, deg in undirectGraph.degree()}
@@ -45,9 +45,8 @@ class VNSSolver:
         elif baseline == "distance":
             # 初始化节点权重字典为空
             self.node2weight = {}
-            # 对于每个需求点节点
+            # 循环计算每个延误节点到其他节点到距离（这个距离不是实际飞行距离，而是延误节点到该节点的边的数量）
             for drpNode in self.S.drpFNodes:
-                # 计算从该节点到其他节点的最短距离
                 node2distance = nx.single_source_dijkstra_path_length(undirectGraph, drpNode, cutoff=None, weight='weight')
                 # 更新节点权重字典，距离越小权重越大
                 for node, dis in node2distance.items():
@@ -55,7 +54,6 @@ class VNSSolver:
                         self.node2weight[self.S.FNode2name[node]] = -1 * dis
                     elif self.node2weight[self.S.FNode2name[node]] < -1 * dis:
                         self.node2weight[self.S.FNode2name[node]] = -1 * dis
-        print('a')
         # # three types of baseline VNS
         # undirectGraph=self.S.connectableGraph.to_undirected()
         # if baseline=="uniform": # uniform probability to be operated
