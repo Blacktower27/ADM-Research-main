@@ -41,25 +41,25 @@ class Scenario:
         #飞机（ACF）、机组（CRW）、乘客（PAX）、行程（ITIN）
         self.type2mincontime={"ACF":self.config["ACMINCONTIME"],"CRW":self.config["CREWMINCONTIME"],"PAX":self.config["PAXMINCONTIME"],"ITIN":self.config["PAXMINCONTIME"]}
         #飞行节点list
-        self.FNodes=[Node(self,ntype="FNode",name=flight) for flight in self.dfdrpschedule["Flight"].tolist()]
+        self.FNodes=[Node(self,ntype="FNode",name=flight) for flight in self.dfdrpschedule["Flight"].tolist()]#基于延误表
         # 创建航班名称到FNode对象的映射和FNode对象到航班名称的映射    
         self.name2FNode={node.name:node for node in self.FNodes}
         self.FNode2name={node:node.name for node in self.FNodes}
         # 获取受影响的FNode
         self.drpFNodes=[self.name2FNode[flight] for flight in self.disruptedFlights]
-         # 创建航班组到航班列表的映射和机组到航班列表的映射
-        self.tail2flights={tail:df_cur["Flight"].tolist() for tail,df_cur in self.dfdrpschedule.groupby("Tail")}
-        self.crew2flights={crew:df_cur["Flight"].tolist() for crew,df_cur in self.dfdrpschedule.groupby("Crew")}
-        # 创建航班组到乘客组列表的映射和航班到乘客数量的映射
+        # 创建航班组到航班列表的映射和机组到航班列表的映射
+        self.tail2flights={tail:df_cur["Flight"].tolist() for tail,df_cur in self.dfdrpschedule.groupby("Tail")}#飞机对航班号对映射
+        self.crew2flights={crew:df_cur["Flight"].tolist() for crew,df_cur in self.dfdrpschedule.groupby("Crew")}#机组成员对航班号对映射
+        #itin:行程
         self.itin2flights,self.itin2pax,self.flt2pax,self.flight2itinNum,self.flt2skditins={},{},defaultdict(int),defaultdict(list),defaultdict(list)
         for row in self.dfitinerary.itertuples():
             flights=row.Flight_legs.split('-')
-            self.itin2flights[row.Itinerary]=flights
-            self.itin2pax[row.Itinerary]=row.Pax
+            self.itin2flights[row.Itinerary]=flights#行程到航班到映射
+            self.itin2pax[row.Itinerary]=row.Pax#行程到乘客数量到的映射
             for flight in flights:
-                self.flight2itinNum[flight].append((row.Itinerary,row.Pax))
-                self.flt2pax[flight]+=row.Pax
-                self.flt2skditins[flight].append(row.Itinerary)
+                self.flight2itinNum[flight].append((row.Itinerary,row.Pax))#航班到行程的映射
+                self.flt2pax[flight]+=row.Pax#航班到乘客数量到映射
+                self.flt2skditins[flight].append(row.Itinerary)#航班到行程到映射
          # 如果乘客类型是PAX，则创建乘客名称到航班列表的映射            
         if paxtype=="PAX":
             self.paxname2flights={}
