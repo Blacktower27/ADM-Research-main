@@ -14,7 +14,7 @@ import haversine
 class Dataset:
     def __init__(self,config,usedaps):
         self.config=config
-        self.dfairports=pd.read_csv("Datasets/"+"0_External/OurAirports/airports.csv",na_filter=None)
+        self.dfairports=pd.read_csv("0_External/OurAirports/airports.csv",na_filter=None)
         self.dfairports=self.dfairports[self.dfairports["iata_code"].isin(usedaps)]
         self.airports=self.dfairports["iata_code"].tolist()
         self.ap2loc={row.iata_code:(row.lat,row.lon) for row in self.dfairports.itertuples()}
@@ -73,7 +73,7 @@ class Dataset:
             self.plotTrajectoryOnBasemap(flights,ax)
             ax.set_title("%s: "%entity+str(groupname),fontsize=16)
         plt.tight_layout()
-        plt.savefig("Datasets/"+"ACF%d/TailsMap.pdf"%self.config["MAXAC"])
+        plt.savefig("ACF%d/TailsMap.pdf"%self.config["MAXAC"])
         
     def plotEntityTrajectoriesAsTimeSpaceNetwork(self,dfschedule,entity):
         fig,ax=plt.subplots(1,1,figsize=(18,6),dpi=100)
@@ -111,19 +111,19 @@ class Dataset:
         unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
         ax.legend(*zip(*unique),fontsize=15)
         plt.tight_layout()
-        plt.savefig("Datasets/"+"ACF%d/TailsTimespace.pdf"%self.config["MAXAC"])
+        plt.savefig("ACF%d/TailsTimespace.pdf"%self.config["MAXAC"])
 
 
 def visualize(direname):
-    with open("Datasets/"+direname+"/Config.json", "r") as outfile:
+    with open(direname+"/Config.json", "r") as outfile:
         config=json.load(outfile)
-    dfschedule=pd.read_csv("Datasets/"+direname+"/Schedule.csv",na_filter=None)
+    dfschedule=pd.read_csv(direname+"/Schedule.csv",na_filter=None)
     usedaps=set(dfschedule["From"].tolist()+dfschedule["To"].tolist())
     D=Dataset(config,usedaps)    
     D.plotEntityTrajectoriesOnMap(dfschedule,"Tail")
     D.plotEntityTrajectoriesAsTimeSpaceNetwork(dfschedule,"Tail")
 
 if __name__=='__main__':
-    visualize("ACF5")
+    visualize("ACF8")
 
 
