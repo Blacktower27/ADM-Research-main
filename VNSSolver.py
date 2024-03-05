@@ -142,6 +142,7 @@ class VNSSolver:
                     flt2father[flts[i]]=flts[i-1]
                             
         # greedy assignment of dt&at for each flight based on the structure of Ps
+        #根据ps贪心分配航班起飞和到达时间
         timeDict={flt:[0,0] for flt in self.flts}
         for P in Ps:
             for i in range(len(P)):
@@ -152,6 +153,7 @@ class VNSSolver:
                     timeDict[P[i]][1]=timeDict[P[i]][0]+self.node[P[i]].SFT
         
         # repair timeDict based on the structure of Qs
+        # 根据 Qs 的结构重构以及ps的时间机组人员飞行和到达时间
         for flt,father in flt2father.items():
             if father!=None:
                 fatherAt=timeDict[father][1]
@@ -159,6 +161,7 @@ class VNSSolver:
                 timeDict[flt][1]=timeDict[flt][0]+self.node[flt].SFT
                 
         # feasibility check for crews: check conflict/unconnected flights based on current timeDict and Qs
+        # 检查机组人员的可行性：检查冲突或未连接的航班
         for Q in Qs:
             curArrTime=self.S.config["STARTTIME"]
             for flt in Q[1:-1]:
@@ -168,53 +171,68 @@ class VNSSolver:
                     curArrTime=timeDict[flt][1]
         
         # the delay of itin is the actual arrival time of itin minus the schedule arrival time of itin
+        # 计算行程的延误
         itinDelay=[(itin,timeDict[self.S.itin2flights[itin][-1]][1]-self.S.itin2skdtime[itin][1]) for itin in self.S.itin2flights.keys()]
         itinDelay=sorted(itinDelay,key=lambda xx:xx[1],reverse=True)
         itin2pax=self.S.itin2pax.copy()
         bothItin2pax=defaultdict(int); itin2flowin=defaultdict(int)
         for itin1, delay1 in itinDelay:
             # Case1: not rerouted
+            # 情况1：没有重新分配
             minCost = self.S.config["DELAYCOST"]*itin2pax[itin1]*delay1
-            minflt2 = None            
-            
+            minflt2 = None
+
             flts1 = self.S.itin2flights[itin1]
             for flt2 in self.flts:
                 # condition for replaceable flt2: current arrival time of flt2 should be earlier than current arrival time of itin1
+                #可更换flt2条件:flt2当前到达时间应早于itin1当前到达时间
                 if self.S.itin2origin[itin1] == self.node[flt2].Ori and self.S.itin2destination[itin1] == self.node[flt2].Des and timeDict[flt2][1] < timeDict[flts1[-1]][1]:
+                    # 计算该航班当前已承载的乘客数量
                     paxFlt2 = sum([itin2pax[itin] for itin in self.S.flt2skditins[flt2]])
-                    remain2 = self.tail2cap[flt2tail[flt2]]-paxFlt2
-                    leave = min(remain2,itin2pax[itin1])
-                    remain1 = itin2pax[itin1]-leave                    
+                    # 计算该航班剩余可容纳的乘客数量
+                    remain2 = self.tail2cap[flt2tail[flt2]] - paxFlt2
+                    # 计算该行程可分配给当前航班的乘客数量
+                    leave = min(remain2, itin2pax[itin1])
+                    # 计算该行程剩余未分配的乘客数量
+                    remain1 = itin2pax[itin1] - leave
                     # Case2: reroute with a late-depart flight. The replaceable flt2 has later departure time than the schedule departure time of itin1, so the leave in itin1 can be sure to catch the flt2, but they will experience arrival delay than schedule 
+                    # 情况2：重新配置延误的航班，将航班的起飞时间保持不变
                     if timeDict[flt2][0] > self.S.itin2skdtime[itin1][0]:
                         # the timing of flt2 remains unchanged
-                        timeFlt2 = [timeDict[flt2][0],timeDict[flt2][1]] 
+                        timeFlt2 = [timeDict[flt2][0],timeDict[flt2][1]]
                         # sign operation: if positive keep it, if negative set it to 0
                         cost = self.S.config["DELAYCOST"]*leave*max(timeFlt2[1]-self.S.itin2skdtime[itin1][1],0) \
-                             + self.S.config["DELAYCOST"]*remain1*delay1
+                               + self.S.config["DELAYCOST"]*remain1*delay1
                     # Case3: reroute with an early flight: # The replaceable flt2 has earlier departure time than the schedule departure time of itin1, so we need to change the time of flight2 to schedule departure time of itin1
-                    else: 
+                    else:
                         # the timing of flt2 is aligned to the schedule departure time of itin1
-                        timeFlt2 = [self.S.itin2skdtime[itin1][0],self.S.itin2skdtime[itin1][0]+self.node[flt2].SFT] 
+                        timeFlt2 = [self.S.itin2skdtime[itin1][0],self.S.itin2skdtime[itin1][0]+self.node[flt2].SFT]
                         cost = self.S.config["DELAYCOST"]*remain1*delay1 \
-                             + self.S.config["DELAYCOST"]*paxFlt2*max(timeFlt2[1]-self.node[flt2].ScheduleAT,0) \
-                             + self.S.config["DELAYCOST"]*leave*max(timeFlt2[1]-self.S.itin2skdtime[itin1][1],0)
-                             
+                               + self.S.config["DELAYCOST"]*paxFlt2*max(timeFlt2[1]-self.node[flt2].ScheduleAT,0) \
+                               + self.S.config["DELAYCOST"]*leave*max(timeFlt2[1]-self.S.itin2skdtime[itin1][1],0)
+
                     if cost < minCost:
                         minCost = cost
                         minflt2 = flt2
                         minTimeFlt2 = timeFlt2
                         minLeave = leave
-                            
+
+            # 如果存在可替换的航班
             if minflt2 != None:
+                # 获取替换航班对应的行程
                 itin2 = self.S.fltlegs2itin[minflt2]
+                # 更新航班的起飞和到达时间
                 timeDict[minflt2] = minTimeFlt2
+                # 更新行程流入的乘客数量
                 itin2flowin[itin2] += minLeave
+                # 更新行程的乘客数量
                 itin2pax[itin1] -= minLeave
                 itin2pax[itin2] += minLeave
-                bothItin2pax[(itin2,itin1)] = minLeave
-            
-            # feasibility check for itin1: check conflict or unconnected flights 
+                # 更新行程对应的乘客数量字典
+                bothItin2pax[(itin2, itin1)] = minLeave
+
+            # feasibility check for itin1: check conflict or unconnected flights
+            #检查行程的可行性
             if itin2pax[itin1]>0:
                 curAt=self.S.config["STARTTIME"]
                 for flt in flts1:
@@ -222,50 +240,59 @@ class VNSSolver:
                         return np.inf,None,None,None
                     else:
                         curAt=timeDict[flt][1]
-                
+
             bothItin2pax[(itin1,itin1)]=itin2pax[itin1]-itin2flowin.get(itin1,0)
         
         # compute paxDict
+        # 计算每个航班承载的乘客数量，并存储到字典中
         paxDict=defaultdict(int)
         for recItin,pax in itin2pax.items():
             for flt in self.S.itin2flights[recItin]:
                 paxDict[flt]+=pax         
                 
         # feasibility check for tail capacity
+        # 检查航班容量的可行性
         for flt,tail in flt2tail.items():
             if paxDict[flt]>self.tail2cap[tail]:
                 return np.inf,None,None,None
-        
-        # compute delay cost
-        delayCost=0
-        for bothItin,pax in bothItin2pax.items():
-            recItin,skdItin=bothItin
-            delay=timeDict[self.S.itin2flights[recItin][-1]][1]-self.S.itin2skdtime[skdItin][1]
-            if delay<0:
-                delay=0
-            delayCost+=self.S.config["DELAYCOST"]*delay*pax
-        
-        # compute follow gain
-        followCost=0
-        for i,skdFlts in enumerate(self.S.tail2flights.values()):
-            recFlts=Ps[i][1:-1]
-            followCost+=self.S.config["FOLLOWSCHEDULECOST"]
+
+        # 计算延误成本
+        delayCost = 0
+        for bothItin, pax in bothItin2pax.items():
+            recItin, skdItin = bothItin
+            # 计算行程的实际延误时间
+            delay = timeDict[self.S.itin2flights[recItin][-1]][1] - self.S.itin2skdtime[skdItin][1]
+            # 如果延误时间为负数，则置为0
+            if delay < 0:
+                delay = 0
+            # 计算延误成本
+            delayCost += self.S.config["DELAYCOST"] * delay * pax
+
+        # 计算成本
+        followCost = 0
+        # 计算航班的成本
+        for i, skdFlts in enumerate(self.S.tail2flights.values()):
+            recFlts = Ps[i][1:-1]
+            followCost += self.S.config["FOLLOWSCHEDULECOST"]
             for j in range(len(skdFlts)):
-                if j<len(recFlts) and skdFlts[j]==recFlts[j]:
-                    followCost+=self.S.config["FOLLOWSCHEDULECOST"]
-        for i,skdFlts in enumerate(self.S.crew2flights.values()):
-            recFlts=Qs[i][1:-1]
-            followCost+=self.S.config["FOLLOWSCHEDULECOST"]
+                if j < len(recFlts) and skdFlts[j] == recFlts[j]:
+                    followCost += self.S.config["FOLLOWSCHEDULECOST"]
+        # 计算机组人员的成本
+        for i, skdFlts in enumerate(self.S.crew2flights.values()):
+            recFlts = Qs[i][1:-1]
+            followCost += self.S.config["FOLLOWSCHEDULECOST"]
             for j in range(len(skdFlts)):
-                if j<len(recFlts) and skdFlts[j]==recFlts[j]:
-                    followCost+=self.S.config["FOLLOWSCHEDULECOST"]
-        for bothItin,pax in bothItin2pax.items():
-            recItin,skdItin=bothItin
-            if recItin==skdItin:
-                followCost+=self.S.config["FOLLOWSCHEDULECOSTPAX"]*pax*(len(self.S.itin2flights[skdItin])+1)            
-        
-        objective=delayCost+followCost
-        return objective,timeDict,bothItin2pax,paxDict,delayCost,followCost
+                if j < len(recFlts) and skdFlts[j] == recFlts[j]:
+                    followCost += self.S.config["FOLLOWSCHEDULECOST"]
+        # 计算乘客行程的成本
+        for bothItin, pax in bothItin2pax.items():
+            recItin, skdItin = bothItin
+            # 如果行程未重新分配，则乘客行程的跟进成本为：(行程的航班数 + 1) * 每个乘客的跟进成本
+            if recItin == skdItin:
+                followCost += self.S.config["FOLLOWSCHEDULECOSTPAX"] * pax * (len(self.S.itin2flights[skdItin]) + 1)
+        # 计算目标函数值，为延误成本和跟进成本之和
+        objective = delayCost + followCost
+        return objective, timeDict, bothItin2pax, paxDict, delayCost, followCost
     
     def generateVNSRecoveryPlan(self,minPs,minQs,minRes):
         objective,timeDict,bothItin2pax,paxDict,delayCost,followCost=minRes

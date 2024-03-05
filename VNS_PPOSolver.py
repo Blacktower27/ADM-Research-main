@@ -267,7 +267,7 @@ if __name__ == '__main__':
             #   "SCENARIO": "ACF%d-SC%d" % (i, j),
               "SEED": 1,
               "EPISODE": 5000,
-              "TRAJLEN": 5,
+              "TRAJLEN": 5,#5个step训练一次
               "FC1DIMS": 256,#隐藏层大小
               "FC2DIMS": 256,#隐藏层大小
               "ALPHA": 0.00001, 
@@ -278,8 +278,8 @@ if __name__ == '__main__':
               "NEPOCH": 3,
               "NSTRING": None,#这是个什么玩意？
               "SAVERESULT": True,
-              "SAVEPOLICY": False,
-              "EXISTPOLICY": None
+              "SAVEPOLICY": True,
+              "EXISTPOLICY": 'ACF5-SCm'
               }
     
     trainPPO(config)
