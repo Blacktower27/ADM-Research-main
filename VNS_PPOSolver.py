@@ -260,10 +260,10 @@ def trainPPO(config):
 
 if __name__ == '__main__':
     
-    i=5
-    j='p'
+    i=10
+    j='m'
     config = {"DATASET": "ACF%d"%i,#
-              "SCENARIO": "ACF%d-SCm"%i,#飞机航班计划表
+              "SCENARIO": "ACF%d-SC%c"%(i,j),#飞机航班计划表
             #   "SCENARIO": "ACF%d-SC%d" % (i, j),
               "SEED": 1,
               "EPISODE": 5000,
@@ -279,7 +279,7 @@ if __name__ == '__main__':
               "NSTRING": None,#这是个什么玩意？
               "SAVERESULT": True,
               "SAVEPOLICY": True,
-              "EXISTPOLICY": 'ACF5-SCm'
+              "EXISTPOLICY": None
               }
     
     trainPPO(config)
