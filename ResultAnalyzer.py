@@ -246,7 +246,7 @@ def getScenarioSummary(dataset,scenario):
 
 if __name__=="__main__":
     
-    for size in range(5,10,5):
+    for size in range(5,35,5):
         for typ in ["m","p"]:
             print(size,typ)
             ana=Analyzer("ACF%d"%size,"ACF%d-SC%s"%(size,typ),"Mode1")
