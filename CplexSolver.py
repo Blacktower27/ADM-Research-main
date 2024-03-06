@@ -45,7 +45,7 @@ def runCPLEX(dataset,scenario):
 if __name__ == '__main__':
     # createScenario("ACF5","ACF5-SCp",0.3,114)
     createScenario("ACF25", "ACF25-SCm", 0.1, 114)
-main("ACF5","ACF5-SCp",0.3,114)
+# main("ACF5","ACF5-SCp",0.3,114)
 #p就是论文中的DS+
 #m就是论文中的DS-
 
