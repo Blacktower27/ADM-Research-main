@@ -200,17 +200,21 @@ class Agent:
                 
                 weighted_clipped_probs = T.clamp(prob_ratio, 1-self.policy_clip, 1+self.policy_clip)*advantage[batch]
                 actor_loss = -T.min(weighted_probs, weighted_clipped_probs).mean()
-                
+                # self.actor.optimizer.zero_grad()
+                # actor_loss.backward()
+                # self.actor.optimizer.step()
                 returns = advantage[batch] + values[batch]
                 critic_loss = (returns-critic_value)**2
                 critic_loss = critic_loss.mean()
+                # self.critic.optimizer.zero_grad()
+                # critic_loss.backward()
+                # self.critic.optimizer.step()
                 total_loss = actor_loss + 0.5*critic_loss
                 self.actor.optimizer.zero_grad()
                 self.critic.optimizer.zero_grad()
                 total_loss.backward()
                 self.actor.optimizer.step()
                 self.critic.optimizer.step()
-
         self.memory.clear_memory()             
     
 def trainPPO(config):
