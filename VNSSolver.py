@@ -13,7 +13,7 @@ import multiprocessing
 import os
 
 class VNSSolver:
-    def __init__(self,S,seed,baseline="distance",enumFlag=False):
+    def __init__(self,S,seed,baseline="distance",enumFlag=True):
         self.S=S
         random.seed(seed)
         np.random.seed(seed)
@@ -357,14 +357,19 @@ class VNSSolver:
         return Xdist
     
     def transformStrings(self,k,curXs,Xdist):
-        Xind1,Xind2=np.random.choice(np.arange(len(curXs)),size=2,replace=False,p=Xdist)
-        Xpairs=eval("self."+self.k2func[k])(curXs[Xind1],curXs[Xind2])
-        if len(Xpairs)>=1:
-            nX1,nX2=random.choice(Xpairs)
-            nXs=curXs.copy()
-            nXs[Xind1],nXs[Xind2]=nX1,nX2
+        # 从当前解空间中随机选择两个解的索引
+        Xind1, Xind2 = np.random.choice(np.arange(len(curXs)), size=2, replace=False, p=Xdist)
+        # 根据选择的两个解及指定的变换函数生成新的解对
+        Xpairs = eval("self." + self.k2func[k])(curXs[Xind1], curXs[Xind2])
+        # 如果生成了至少一个解对
+        if len(Xpairs) >= 1:
+            # 随机选择一个解对，并将其替换原始解空间中的对应位置
+            nX1, nX2 = random.choice(Xpairs)
+            nXs = curXs.copy()
+            nXs[Xind1], nXs[Xind2] = nX1, nX2
         else:
-            nXs=curXs
+            # 如果未生成解对，则保持原始解空间不变
+            nXs = curXs
         return nXs
         
     def exploreNeighborK(self,k,curPs,curQs,Pdist,Qdist):
@@ -376,6 +381,7 @@ class VNSSolver:
             return nPs,nQs,nRes
 
         # random sample the pair + full enumeration through operating choices
+        #去一个个试
         else:
             curRes=self.evaluate(curPs,curQs)
             Pind1,Pind2=random.sample(range(len(curPs)),2)

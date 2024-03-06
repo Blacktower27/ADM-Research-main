@@ -43,19 +43,11 @@ def runCPLEX(dataset,scenario):
 #    main("ACF25","ACF25-SCm",0.1,3)
     
 if __name__ == '__main__':
-<<<<<<< HEAD
+
     # createScenario("ACF5","ACF5-SCp",0.3,114)
-    createScenario("ACF25", "ACF25-SCm", 0.1, 114)
-<<<<<<< HEAD
+    createScenario("ACF15", "ACF15-SCp", 0.3, 114)
 # main("ACF5","ACF5-SCp",0.3,114)
-=======
-    createScenario("ACF5","ACF5-SCp",0.3,114)
-    createScenario("ACF10", "ACF10-SCm", 0.1, 114)
-# main("ACF25","ACF25-SCp",0.3,114)
->>>>>>> parent of e898733 (latest)
-=======
-main("ACF5","ACF5-SCp",0.3,114)
->>>>>>> parent of 1a544c6 (latest)
+
 #p就是论文中的DS+
 #m就是论文中的DS-
 
