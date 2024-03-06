@@ -171,8 +171,8 @@ class Agent:
         for _ in range(self.n_epochs):
             state_arr, action_arr, old_prob_arr, vals_arr, reward_arr, batches = \
                     self.memory.generate_batches()
-            # 计算优势函数（广义优势估计）
             values = vals_arr
+            # 计算优势函数（广义优势估计）
             advantage = np.zeros(len(reward_arr), dtype=np.float32)
 
             for t in range(len(reward_arr)-1):
@@ -183,8 +183,8 @@ class Agent:
                     discount *= self.gamma*self.gae_lambda
                 advantage[t] = a_t
             advantage = T.tensor(advantage).to(self.actor.device)
-
             values = T.tensor(values).to(self.actor.device)
+
             for batch in batches:
                 states = T.tensor(state_arr[batch], dtype=T.float).to(self.actor.device)
                 old_probs = T.tensor(old_prob_arr[batch]).to(self.actor.device)
@@ -260,8 +260,8 @@ def trainPPO(config):
 
 if __name__ == '__main__':
     
-    i=10
-    j='m'
+    i=5
+    j='p'
     config = {"DATASET": "ACF%d"%i,#
               "SCENARIO": "ACF%d-SC%c"%(i,j),#飞机航班计划表
             #   "SCENARIO": "ACF%d-SC%d" % (i, j),
