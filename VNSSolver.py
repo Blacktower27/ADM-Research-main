@@ -39,7 +39,6 @@ class VNSSolver:
             self.node2weight = {self.S.FNode2name[node]: 1 for node in self.S.FNodes}#全部的概率都是1
         # degree：连接其他节点的数量越多权重越高（包括其他节点指向它 以及它指向其他节点）
         elif baseline == "degree":
-            # 为每个节点设置与其度数相同的权重
             self.node2weight = {self.S.FNode2name[node]: deg for node, deg in undirectGraph.degree()}
         # distance：距离越小表示被操作的概率越高
         elif baseline == "distance":

@@ -282,7 +282,7 @@ if __name__ == '__main__':
               "NEPOCH": 3,
               "NSTRING": None,#这是个什么玩意？
               "SAVERESULT": True,
-              "SAVEPOLICY": True,
+              "SAVEPOLICY": False,
               "EXISTPOLICY": None
               }
     
