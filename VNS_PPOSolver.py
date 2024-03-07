@@ -264,7 +264,7 @@ def trainPPO(config):
 
 if __name__ == '__main__':
     
-    i=10
+    i=15
     j='m'
     config = {"DATASET": "ACF%d"%i,#
               "SCENARIO": "ACF%d-SC%c"%(i,j),#飞机航班计划表
