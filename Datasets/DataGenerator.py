@@ -11,8 +11,8 @@ import numpy as np
 class Dataset:
     def __init__(self,config):
         self.config=config
-        self.dfacmodels=pd.read_excel("0_External/FAAAircraftCharacteristicDatabase/AircraftModels.xlsx",na_filter=None).head(config["MAXACT"])
-        self.dfairports=pd.read_csv("0_External/OurAirports/airports.csv",na_filter=None)
+        self.dfacmodels=pd.read_excel("Datasets/0_External/FAAAircraftCharacteristicDatabase/AircraftModels.xlsx",na_filter=None).head(config["MAXACT"])
+        self.dfairports=pd.read_csv("Datasets/0_External/OurAirports/airports.csv",na_filter=None)
         self.dfairports=self.dfairports[(self.dfairports["iso3"]=="USA")&((self.dfairports["lon"]>-130))].head(self.config["MAXAPT"]) # USA without Hawaii and Alaska
         self.airports=self.dfairports["iata_code"].tolist()
         self.ap2loc={row.iata_code:(row.lat,row.lon) for row in self.dfairports.itertuples()}
@@ -191,8 +191,8 @@ def generateDataset(direname,config):
         json.dump(config, outfile, indent = 4)
 
 if __name__=='__main__':
-    config={"MAXAC":20, # Number of aicraft trajectories to generate
-            "MAXAPT":20+random.randint(-2,2), # Number of airports
+    config={"MAXAC":25, # Number of aicraft trajectories to generate
+            "MAXAPT":25+random.randint(-2,2), # Number of airports
             "MAXACT":3, # Number of unique aircraft types
             "LOADFACTOR":0.8, # Load factor for generating passengers from aircraft capacity
             "MINFLIGHTDISTANCE":600, # No flights shorter than this distance

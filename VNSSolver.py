@@ -291,6 +291,7 @@ class VNSSolver:
                 followCost += self.S.config["FOLLOWSCHEDULECOSTPAX"] * pax * (len(self.S.itin2flights[skdItin]) + 1)
         # 计算目标函数值，为延误成本和跟进成本之和
         objective = delayCost + followCost
+        
         return objective, timeDict, bothItin2pax, paxDict, delayCost, followCost
     
     def generateVNSRecoveryPlan(self,minPs,minQs,minRes):

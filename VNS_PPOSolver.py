@@ -9,6 +9,7 @@ from NetworkGenerator import Scenario
 from VNSSolver import VNSSolver
 import time
 import heapq
+from CplexSolver import createScenario
 
 class ADMEnvironment(VNSSolver):
     def __init__(self, S, seed, npar):
@@ -36,6 +37,7 @@ class ADMEnvironment(VNSSolver):
         # 保存上一个状态和上一个状态的评估结果
         self.lastStrState = self.skdStrState
         self.lastObj = self.evaluate(*self.skdStrState)[0]
+        self.lastObj = min(9999999,self.lastObj)
         # 返回重置后的环境状态的张量表示
         return self.string2tensor(self.skdStrState)
 
@@ -61,6 +63,7 @@ class ADMEnvironment(VNSSolver):
                 nQs[qindpair[0]], nQs[qindpair[1]] = nQ1, nQ2# 执行机组人员的操作，更新机组人员状态
                 nObj = self.evaluate(nPs, nQs)[0]# 计算更新后的状态的评估值
                 # 如果更新后的状态的评估值比当前状态的评估值更优，则更新当前状态和评估值
+                nObj = min(nObj,9999999)
                 if nObj < curObj:
                     curPs, curQs, curObj = nPs, nQs, nObj
         
@@ -263,8 +266,8 @@ def trainPPO(config):
 
 
 if __name__ == '__main__':
-    
-    i=15
+    # createScenario("ACF5","ACF5-SCp",0.3,42)
+    i=20
     j='m'
     config = {"DATASET": "ACF%d"%i,#
               "SCENARIO": "ACF%d-SC%c"%(i,j),#飞机航班计划表
@@ -283,6 +286,7 @@ if __name__ == '__main__':
               "NSTRING": None,#这是个什么玩意？
               "SAVERESULT": True,
               "SAVEPOLICY": False,
+            #   "EXISTPOLICY": "ACF5-SCp"
               "EXISTPOLICY": None
               }
     
