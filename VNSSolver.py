@@ -425,7 +425,7 @@ def runVNS(par):
     config={"DATASET": "ACF%d"%par[0],
             "SCENARIO": "ACF%d-SC%c"%(par[0],par[1]),
             "BASELINE": par[2],
-            "TRAJLEN": 10,
+            "TRAJLEN": 100,
             "ENUMFLAG": False,
             "EPISODES": 100
             }
