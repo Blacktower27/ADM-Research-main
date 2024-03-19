@@ -264,13 +264,8 @@ def trainPPO(config):
 
 if __name__ == '__main__':
     
-<<<<<<< Updated upstream
     i=15
     j='m'
-=======
-    i=10
-    j='p'
->>>>>>> Stashed changes
     config = {"DATASET": "ACF%d"%i,#
               "SCENARIO": "ACF%d-SC%c"%(i,j),#飞机航班计划表
             #   "SCENARIO": "ACF%d-SC%d" % (i, j),
