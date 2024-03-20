@@ -119,12 +119,12 @@ def generateDataset(direname,config):
             else:
                 neighbors=list(D.Gconnectable.neighbors(origin))
                 destination=random.choices(population=neighbors,weights=[D.ap2pax[k] for k in neighbors],k=1)[0]
-                
-            distance=int(D.appair2distance[(origin,destination)])
-            flightTime=int(distance/D.config["ACTAVGSPEED"])
-            cruiseTime=max(flightTime-30*60,0)
-            arrTime=depTime+flightTime
-            if arrTime>=D.config["ENDTIME"]:
+            # 计算航程距离、飞行时间等信息
+            distance=int(D.appair2distance[(origin,destination)])#根据现实情况获取起点和目的地的距离
+            flightTime=int(distance/D.config["ACTAVGSPEED"])#计算飞行时间 距离除飞机平均飞行速度(定死的)
+            cruiseTime=max(flightTime-30*60,0)#巡航时间
+            arrTime=depTime+flightTime#到达时间
+            if arrTime>=D.config["ENDTIME"]:#超过最晚到达时间结束循环
                 break
             fltname="F%02d"%flightind
             flightind+=1

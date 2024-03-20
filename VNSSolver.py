@@ -425,7 +425,7 @@ def runVNS(par):
     config={"DATASET": "ACF%d"%par[0],
             "SCENARIO": "ACF%d-SC%c"%(par[0],par[1]),
             "BASELINE": par[2],
-            "TRAJLEN": 100,
+            "TRAJLEN": 10,
             "ENUMFLAG": False,
             "EPISODES": 100
             }
@@ -453,7 +453,7 @@ def runVNS(par):
 if __name__ == '__main__':
     
     p=multiprocessing.Pool()
-    todo=[(i,typ,m) for i in range(5,25,5) for typ in ['p','m'] for m in ["degree","uniform","distance"]]
+    todo=[(i,typ,m) for i in range(15,20,5) for typ in ['m'] for m in ["degree","uniform","distance"]]
     t1=time.time()
     p=multiprocessing.Pool()
     for i,res in enumerate(p.imap_unordered(runVNS,todo),1):

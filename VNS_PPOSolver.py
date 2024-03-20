@@ -267,14 +267,14 @@ def trainPPO(config):
 
 if __name__ == '__main__':
     # createScenario("ACF5","ACF5-SCp",0.3,42)
-    i=20
-    j='m'
+    i=10
+    j='p'
     config = {"DATASET": "ACF%d"%i,#
               "SCENARIO": "ACF%d-SC%c"%(i,j),#飞机航班计划表
             #   "SCENARIO": "ACF%d-SC%d" % (i, j),
               "SEED": 1,
-              "EPISODE": 5000,
-              "TRAJLEN": 5,#5个step训练一次
+              "EPISODE": 2000,
+              "TRAJLEN": 10,#
               "FC1DIMS": 256,#隐藏层大小
               "FC2DIMS": 256,#隐藏层大小
               "ALPHA": 0.00001, 
