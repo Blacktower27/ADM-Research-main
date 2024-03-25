@@ -45,10 +45,10 @@ def runCPLEX(dataset,scenario):
     
 if __name__ == '__main__':
 
-    createScenario("ACF5","ACF5-SCm",0.1,42)
+    # createScenario("ACF15","ACF15-SCm",0.1,42)
     # createScenario("ACF20", "ACF20-SCp", 0.3, 114)
     # main("ACF10","ACF10-SCp",0.3,114)#no solution
-    # main("ACF15","ACF15-SCp",0.3,114)#no solution
+    main("ACF20","ACF20-SCm",0.1,42)#no solution
     # main("ACF20","ACF20-SCp",0.3,114)#no solution
     # main("ACF25","ACF25-SCp",0.3,42)
     # todo=[(i,typ) for i in range(25,30,5) for typ in ['p','m']]

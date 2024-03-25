@@ -10,6 +10,7 @@ from VNSSolver import VNSSolver
 import time
 import heapq
 from CplexSolver import createScenario
+import math
 
 class ADMEnvironment(VNSSolver):
     def __init__(self, S, seed, npar):
@@ -20,6 +21,7 @@ class ADMEnvironment(VNSSolver):
         self.stateShape = self.string2tensor(self.skdStrState).shape#状态的shape
         Pinds = list(range(len(self.skdPs)))
         Qinds = list(range(len(self.skdQs)))
+        self.best = math.inf
         
         if npar != None:
             Pdist = self.getStringDistribution(self.skdPs)
@@ -38,6 +40,7 @@ class ADMEnvironment(VNSSolver):
         self.lastStrState = self.skdStrState
         self.lastObj = self.evaluate(*self.skdStrState)[0]
         self.lastObj = min(9999999,self.lastObj)
+        self.lastObj = min(self.best,self.lastObj)
         # 返回重置后的环境状态的张量表示
         return self.string2tensor(self.skdStrState)
 
@@ -54,7 +57,7 @@ class ADMEnvironment(VNSSolver):
         k1, k2, pindpair, qindpair = self.idx2action[action_idx]
         curPs, curQs = self.lastStrState#当前的航班状态和机组人员状态
         curObj = self.lastObj# 获取当前状态的评估值
-        
+        nObj = curObj
         for (nP1, nP2) in eval("self."+self.k2func[k1])(curPs[pindpair[0]], curPs[pindpair[1]]):
             nPs = curPs.copy()# 复制当前航班状态
             nPs[pindpair[0]], nPs[pindpair[1]] = nP1, nP2# 执行航班对的操作，更新航班状态
@@ -66,11 +69,18 @@ class ADMEnvironment(VNSSolver):
                 nObj = min(nObj,9999999)
                 if nObj < curObj:
                     curPs, curQs, curObj = nPs, nQs, nObj
+                    self.best = curObj
         
         reward = self.lastObj - curObj
+        # if(reward>0):
+        #     print(self.lastObj)
+        #     print(curObj)
         self.lastStrState = (curPs, curQs)
         self.lastObj = curObj
-        return self.string2tensor(self.lastStrState), reward
+        # if(reward>0):
+        #     print(self.lastObj)
+        #     print(curObj)
+        return self.string2tensor(self.lastStrState), reward, curObj
     
 
 class PPOMemory:
@@ -232,17 +242,23 @@ def trainPPO(config):
     
     episodeObjs = []
     times = []
+    nobj_values = []
+    nobj_values.append(env.evaluate(*env.skdStrState)[0])
     for episode in range(config["EPISODE"]):
         T1=time.time()
         state = env.reset()
         episodeReward = 0
         for i in range(config["TRAJLEN"]):
             action, prob, val = agent.choose_action(state)
-            nextstate, reward = env.step(action)
+            nextstate, reward, nobj = env.step(action)
             episodeReward += reward
             agent.store_transition(state, action, prob, val, reward)
             state = nextstate
-
+            if(episode==1999):
+                nobj_values.append(nobj)
+        if(episode==1999):    
+            nobj_array = np.array(nobj_values)
+            np.savez('15mppoVNS10.npz', nobj=nobj_array)
         episodeObjs.append(env.lastObj)
         print(config["SCENARIO"], 'episode: {:>3}'.format(episode),' reward: {:>7.1f} '.format(episodeReward), ' objective: {:>7.1f} '.format(env.lastObj))
         agent.learn()
@@ -267,8 +283,8 @@ def trainPPO(config):
 
 if __name__ == '__main__':
     # createScenario("ACF5","ACF5-SCp",0.3,42)
-    i=10
-    j='p'
+    i=15
+    j='m'
     config = {"DATASET": "ACF%d"%i,#
               "SCENARIO": "ACF%d-SC%c"%(i,j),#飞机航班计划表
             #   "SCENARIO": "ACF%d-SC%d" % (i, j),

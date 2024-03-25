@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-i = 10
+i = 5
 j = 'p'
 data1 = np.load("/Users/blairlu/code/python_code/intern/ADM-Research-main/Results/ACF15-SCm/res_distance.npz")
 data2 = np.load("/Users/blairlu/code/python_code/intern/ADM-Research-main/Results/ACF15-SCm/res_distance10.npz")

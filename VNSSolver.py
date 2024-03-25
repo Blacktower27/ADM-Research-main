@@ -29,6 +29,7 @@ class VNSSolver:
         self.k2func={0:"pass_",1:"swap",2:"cut",3:"insert"}#临域动作的编号 delete不知道去哪里了
         self.baseline=baseline
         self.enumFlag=enumFlag#是否枚举？
+        self.best = 999999999
         # 基于三种类型的基线VNS
         # 将有向图转换为无向图
         undirectGraph = self.S.connectableGraph.to_undirected()
@@ -401,6 +402,9 @@ class VNSSolver:
     def VNS(self,trajLen):
         minPs,minQs=self.skdPs,self.skdQs
         minRes=self.evaluate(minPs,minQs)
+        nobj_values = []
+        flag = False
+        nobj_values.append(minRes[0])    
         for i in range(trajLen):
             k=0
             while k<=3:
@@ -411,21 +415,28 @@ class VNSSolver:
                     minPs,minQs,minRes=curPs,curQs,curRes
                 else:
                     k+=1
+            nobj_values.append(minRes[0])
+            if minRes[0]<self.best:
+                flag=True
+                self.best = minRes[0]
+        if(flag):
+            nobj_array = np.array(nobj_values)
+            np.savez('15mVNS10.npz', nobj=nobj_array)
         return minPs,minQs,minRes
 
-def runVNSWithEnumSaveSolution(config):
-    S=Scenario(config["DATASET"],config["SCENARIO"],"PAX")
-    solver=VNSSolver(S,0,config["BASELINE"],config["ENUMFLAG"])
-    res=solver.VNS(config["TRAJLEN"])
-    print(res[2][0])
-    solver.generateVNSRecoveryPlan(*res)
+# def runVNSWithEnumSaveSolution(config):
+#     S=Scenario(config["DATASET"],config["SCENARIO"],"PAX")
+#     solver=VNSSolver(S,0,config["BASELINE"],config["ENUMFLAG"])
+#     res=solver.VNS(config["TRAJLEN"])
+#     print(res[2][0])
+#     solver.generateVNSRecoveryPlan(*res)
     
 def runVNS(par):
     
     config={"DATASET": "ACF%d"%par[0],
             "SCENARIO": "ACF%d-SC%c"%(par[0],par[1]),
             "BASELINE": par[2],
-            "TRAJLEN": 10,
+            "TRAJLEN": 100,
             "ENUMFLAG": False,
             "EPISODES": 100
             }
@@ -453,7 +464,8 @@ def runVNS(par):
 if __name__ == '__main__':
     
     p=multiprocessing.Pool()
-    todo=[(i,typ,m) for i in range(15,20,5) for typ in ['m'] for m in ["degree","uniform","distance"]]
+    # todo=[(i,typ,m) for i in range(5,10,5) for typ in ['p'] for m in ["degree","uniform","distance"]]
+    todo=[(i,typ,m) for i in range(15,20,5) for typ in ['m'] for m in ["distance"]]
     t1=time.time()
     p=multiprocessing.Pool()
     for i,res in enumerate(p.imap_unordered(runVNS,todo),1):
